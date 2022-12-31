@@ -21,7 +21,8 @@ from fly import views_lucy
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("", views.homePageView, name="home"),
+    #path("", views.homePageView, name="home"),
+    path('',views_lucy.main),
 
     # 從 views_lucy 載入相關程序
     path('lucy/<str:pk>',views_lucy.lucy),
