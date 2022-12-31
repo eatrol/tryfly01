@@ -1,0 +1,522 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>超級單字王</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id='showxy'></div>
+<a id="toLink" href=""></a>
+
+<script type="text/javascript">
+
+var factor = window.innerWidth/2048; 
+var offsetY = (window.innerHeight - 1536*factor) /2
+
+//factor =0.8;
+
+
+
+var config = {
+    type: Phaser.CANVAS,
+    width: 2048*factor,
+    height: 1536*factor+ 2*offsetY,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+
+
+//var stars;
+
+var cursors;
+var frametime,endtime, gameOver, onfishing,fishrate,fishtop,fishbot;
+var score, scoreYes,scoreText ;
+//var worm, wormText, wormX, wormY;
+
+// 按鍵相關
+var mybutton=[];
+var mybuttonX=[];
+var youbutton = [];
+var youbuttonX = [];
+var my,you,mynum;
+
+// 題庫相關
+var myPic = [];
+var myPicNum = [];
+
+var myMusic = [];
+var raw = [];
+var listNow = [];    // 定義四個按鈕分別是哪個選項
+var listAnswer = []; // 答案順序
+var answer;     // 第幾題
+
+
+var question;
+var textsize;
+var raw=[];
+var isAni1,isAnitime1,isAnidelta1;
+var isAni2,isAnitime2,isAnidelta2;
+var isClick;
+var menu4,menu5,menu6; //選單
+var btn_sound,btn_show,btn_bar,btn_reset;
+
+
+
+
+function initial(){
+
+    mynum = 15; // 設定按鍵最多的狀態
+    //myPic = ['boat','flower','sky','sand','grass','pond','fire','paint','tape','clown'];
+    //myPic = ['glue','sling','blink','beet','dinosaur','first','second','third','fourth','fifth'];
+    myPic = ['star','stream','snail','swear','spring','swimming','running','driving','skating','princess'];
+    for(var i=0;i<myPic.length;i++){
+        var sss = myPic[i].split('');
+        myPicNum[i] = sss.length;
+    }
+
+    frametime=0;            // 遊戲時間
+    endtime = 0;            // 遊戲結束後的時間
+    gameOver = false;
+    isAni1 = false;
+    isAnidelta1 = 30;           // 答題後到下一題出現的間隔時間
+    isAnitime1 = 0;
+    isAni2 = true;
+    isAnidelta2 = 800;          // 每回合答題時間
+    isAnitime2 = isAnidelta2;
+    isClick = true;
+    answer = -1;
+    
+    // onfishing = false;
+    textsize = Math.floor(50*factor) + 'px';    // 設定文字的尺寸
+
+    score = 0;
+   
+    // scoreX = 240 * factor;
+    // scoreY = 39 * factor + offsetY;
+
+    // worm = 5;
+    // wormX = 140 * factor;
+    // wormY = 75  * factor + offsetY;
+
+}
+
+
+var game = new Phaser.Game(config);
+
+function preload (){
+    initial(); // 載入初始設定參數
+
+
+
+    this.load.image('bg01',  '/static/lucygame/2bg01.png');
+    this.load.image('btn01', '/static/lucygame/2btn1.png');      // 按鍵
+    this.load.image('btn02', '/static/lucygame/button02.png');   // 聲音鈕
+    this.load.image('btn03', '/static/lucygame/2btn2.png');      // 填空木牌
+    this.load.image('btn04', '/static/lucygame/2btn3.png');      // reset button
+    this.load.image('btn05', '/static/lucygame/button05.png');
+    this.load.image('btn07', '/static/lucygame/button07.png');
+
+    this.load.image('menuwin', '/static/lucygame/menuwin.png');
+    this.load.image('menu4', '/static/lucygame/menu4.png');
+    this.load.image('menu5', '/static/lucygame/menu5.png');
+    this.load.image('menu6', '/static/lucygame/menu6.png');
+    this.load.image('btn06', '/static/lucygame/button06.png');
+
+
+    this.load.image('goright', '/static/lucygame/goright.png');
+    this.load.image('gowrong', '/static/lucygame/gowrong.png');
+    
+    // 載入所有問題卡資訊
+    for (var i=0;i<myPic.length;i++){
+        
+        this.load.image(myPic[i], '/static/lucy/'+myPic[i]+'.png');  
+        this.load.audio('music'+myPic[i],'/static/lucygame/'+myPic[i]+'.mp3');
+    }
+    
+    this.load.audio('sound_coin','/static/lucygame/coin.mp3');
+    this.load.audio('sound_wrong','/static/lucygame/sound_wrong.mp3');
+    this.load.audio('animaltheme','/static/lucygame/animaltheme.mp3');
+
+}
+
+function create (){
+
+    initial(); // 載入初始設定參數
+    
+
+    // 載入音樂
+    music = this.sound.add('sound_coin',{volume:0.2}) ;
+
+
+    music2 = this.sound.add('animaltheme',{loop:true, volume:2});
+    music2.loop = true;
+    music2.stop();
+    music2.play();
+
+    for (var i=0; i<myPic.length;i++){
+        myMusic[i] = this.sound.add('music'+myPic[i],{volume:1}) ;
+    }
+    
+    music3 = this.sound.add('sound_coin',{volume:0.2});
+    music4 = this.sound.add('sound_wrong',{volume:0.5});
+
+    //  加入背景圖面
+    this.add.image(game.config.width/2, game.config.height/2, 'bg01').setScale(factor);
+    
+
+    // 設定案件問題
+    question = this.physics.add.group();
+    question = new newbutton(question.create(game.config.width/2,470*factor+offsetY,myPic[answer]));
+    question.favor.setScale(factor*0.9);
+  
+    // 設定音樂
+    music = myMusic[answer];
+
+    var myTextSize = 100*factor + 'px';
+ 
+
+
+    // 設定按鍵圖面 group..
+    favor1 = this.physics.add.group();
+    //mybutton[0] = new newbutton(favor1.create(1880*factor, 1100*factor+offsetY, 'btn02'), '');           // 聲音鈕
+
+    // 設定主要按鍵
+    for(var i=1;i<=mynum;i++){
+        mybutton[i] = new newbutton(favor1.create(-9999,1350*factor+offsetY,'btn01'),'' );
+        mybutton[i].text =  this.add.text(-9999, 1350*factor+offsetY,'',{ fontSize: myTextSize, fill: '#000'}).setOrigin(0.5);
+        youbutton[i] = new newbutton(favor1.create(-9999,1135*factor+offsetY,'btn03'),'' );
+        youbutton[i].text =  this.add.text(-9999, 1135*factor+offsetY,'a',{ fontSize: myTextSize, fill: '#fff'}).setOrigin(0.5);
+    }
+
+    my = new newmy(mybutton);
+    you = new newmy(youbutton);
+    
+    // 設定其他功能鍵
+    btn_sound = new newbutton(favor1.create(1880*factor, 1100*factor+offsetY, 'btn02'), '');           // 聲音鈕
+    btn_show = new newbutton(favor1.create(game.config.width/2, 930*factor+offsetY, 'btn06'), '');   // 正確 or 錯誤牌
+    btn_bar = new newbutton(favor1.create(200*factor, 88*factor+offsetY, 'btn07'), '');             // 時間條
+    btn_reset = new newbutton(favor1.create(400*factor, 1135*factor+offsetY, 'btn04'), '');        // Reset Button
+    // 調整按鍵圖面大小
+    favor1.children.iterate(function (child) {
+         child.setScale(factor);
+    });
+    
+    btn_bar.favor.setOrigin(0)
+ 
+    //============================
+    // 設定點擊後的反應=
+    mybutton[1].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(1);}})
+    mybutton[2].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(2);}})
+    mybutton[3].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(3);}})
+    mybutton[4].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(4);}})
+    mybutton[5].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(5);}})
+    mybutton[6].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(6);}})
+    mybutton[7].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(7);}})
+    mybutton[8].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(8);}})
+    mybutton[9].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(9);}})
+    mybutton[10].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(10);}})
+    mybutton[11].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(11);}})
+    mybutton[12].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(12);}})
+    mybutton[13].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(13);}})
+    mybutton[14].favor.setInteractive().on('pointerdown', () => { if(isClick){toFill(14);}})
+
+    btn_sound.favor.setInteractive().on('pointerdown', () => {music.play();})
+
+    //================================
+    toNext();
+
+    btn_reset.favor.setInteractive().on('pointerdown', () => { if(isClick){resetBtn();}})
+
+
+    // // 秀出分數跟時間
+    scoreText = this.add.text(1800*factor, 120*factor+offsetY, score + '/' + myPic.length, { fontSize: textsize, fill: '#fff' }).setOrigin(0.5);
+    // wormText = this.add.text(wormX, wormY, worm, { fontSize: textsize, fill: '#000' });
+    // 時間 =======================
+    timetext = this.add.text(game.config.width/2,100*factor+offsetY,'time:'+frametime,{ fontSize: textsize, fill: '#000' ,boundsAlignH: 'center', boundsAlignV: 'middle' }).setOrigin(0.5);;
+    cursors = this.input.keyboard.createCursorKeys();
+   
+
+    // 結束畫面 ===============
+    menu4 = this.physics.add.sprite(game.config.width/2,game.config.height/2, 'menu4').setScale(factor);
+    menu5 = this.physics.add.sprite(game.config.width/2,0, 'menu5').setScale(factor*0.9);
+    menu6 = this.physics.add.sprite(game.config.width/2,1150*factor+offsetY-game.config.height/2, 'menu6').setScale(factor*0.6); 
+    menu6.setInteractive().on('pointerdown', () => {
+
+        var toLink = document.getElementById("toLink");
+        toLink.href = "/lucygame3/";
+        toLink.click();
+        //music2.stop();
+        //this.scene.restart();
+    })
+    menu4.disableBody(true, true);  // 隱藏背景
+    menu5.disableBody(true, true);  // 隱藏彈出視窗
+    menu6.disableBody(true, true);  // 隱藏按鍵
+   
+
+}
+
+
+//********************************************
+// 更新：主程式
+//************************************
+function update (){
+    if (cursors.space.isDown){
+        initial();
+        music2.stop();
+        this.scene.restart();
+    }
+
+
+
+    // 遊戲結束
+    if (gameOver){
+        
+        timetext.setText('Game Over');
+        menu4.enableBody(true, game.config.width/2,game.config.height/2, true, true);
+        menu5.enableBody(true, game.config.width/2,0, true, true);
+        menu6.enableBody(true, game.config.width/2,1150*factor+offsetY-game.config.height/2, true, true);
+        if(20*endtime < game.config.height/2){
+            menu5.y=20*endtime;
+            menu6.y=1150*factor+offsetY-game.config.height/2+20*endtime;
+        } else {
+            menu5.y=game.config.height/2;
+            menu6.y=1150*factor+offsetY;
+
+        }
+        endtime ++;
+        return;
+    }
+
+    if(isAni1 == true && frametime >  isAnitime1){
+        isAni1= false;
+        toNext();
+    } 
+
+    if(isAni2 == true && frametime >  isAnitime2){
+        isAni2= false;
+        toTable(false)
+    } 
+
+    if (frametime % 50 == 0){       // 每50秒確認一次答案
+        toCheckAns();
+    }
+
+    var slength = (isAnitime2 - frametime)/isAnidelta2;
+    btn_bar.favor.setScale(1*factor*slength,factor);
+
+    
+    scoreText.setText(score+ '/' + myPic.length);
+    timetext.setText('time:'+frametime);
+    frametime += 1;
+
+}
+
+// ************************************
+function resetBtn(){
+    var sss = myPic[answer].split('');
+    for (var i=1;i<=myPicNum[answer] ; i++){
+        var n = listNow[i-1]
+        mybutton[i].text.setText(sss[n]);
+        youbutton[i].text.setText('');
+    }
+}
+
+
+
+
+
+function toCheckAns(){
+    var sss = myPic[answer].split('');
+    var isAnswer = true;
+    for(var i=1;i<=myPicNum[answer];i++){
+        var yText = youbutton[i].text.text;
+        var mText = sss[i-1];
+        if (yText == ''){ 
+            return;
+        }        
+        
+        if (yText != mText) {
+            isAnswer = false;
+        }
+    }
+    toTable(isAnswer);
+
+}
+
+
+function toFill(pk){
+    var mText = mybutton[pk].text.text;
+    if (mText == '') {return}
+
+    for(var i=1;i<=myPicNum[answer];i++){
+        var yText = youbutton[i].text.text;
+        if (yText == ''){ 
+            youbutton[i].text.setText(mText);
+            mybutton[pk].text.setText('');
+            break;
+        }
+    }
+    
+}
+
+
+function toTable(isAnswer){
+    
+    if (isAnswer){
+        // 如果答案正確 -----
+        music3.play();
+        btn_show.favor.setTexture('goright');
+        score++;    // 得1分
+
+        
+    } else{
+        // 如果答案錯誤 -----
+        music4.play();
+        btn_show.favor.setTexture('gowrong');
+
+    }
+
+    isClick = false;
+    isAni1 = true;
+    isAnitime1 = frametime + isAnidelta1;
+
+    isAni2 = true;
+    isAnitime2 = frametime + isAnidelta2;
+    
+
+}
+
+
+function newbutton(favor,text){
+     this.favor = favor;
+     this.text = text;
+     this.no = 999;
+     this.setPic = function(pk){
+        this.no = pk;
+        this.favor.setTexture(myPic[pk]);
+     }
+
+     this.setText = function(pk){
+        this.no = pk;
+        this.text.setText(myPic[pk]);
+     }
+
+}
+
+function newmy(button){
+    this.button = button;
+
+    this.clearPos = function(){
+        // 清除舊的
+        for(var i=1;i<=15;i++){
+            this.button[i].favor.x = -9999
+            this.button[i].text.x = -9999
+            this.button[i].text.text = '';
+        }
+
+    }
+
+    // 依照字元數量, 重新設定按鍵得位置
+    this.setPos = function(pk){ 
+        this.clearPos();    // 清除舊的
+
+        // 設定新的
+        var mynum = myPicNum[pk];
+        for(var i=1;i<=mynum;i++){
+            this.button[i].favor.x = (2048/2 + (i-(mynum+1)*0.5)*200)*factor;
+            this.button[i].text.x = (2048/2 + (i-(mynum+1)*0.5)*200)*factor;
+        }
+    }
+
+    this.setPosYou = function(pk){ 
+        this.clearPos();    // 清除舊的
+
+        // 設定新的
+        var mynum = myPicNum[pk];
+        for(var i=1;i<=mynum;i++){
+            this.button[i].favor.x = (2048/2 + (i-(mynum+1)*0.5)*120)*factor;
+            this.button[i].text.x = (2048/2 + (i-(mynum+1)*0.5)*120)*factor;
+        }
+    }
+
+
+
+
+}
+
+// 執行下一關
+function toNext(){
+    answer = answer +1;
+    if(answer >= myPic.length){ 
+        gameOver= true ;
+        return;
+    }
+    isClick=true;
+    music = myMusic[answer];
+    music.play();
+    question.setPic(answer);
+    my.setPos(answer);
+    you.setPosYou(answer);
+    
+    listNow = shuffle();
+    var sss = myPic[answer].split('');
+    for (var i=1;i<=myPicNum[answer] ; i++){
+        var n = listNow[i-1]
+        mybutton[i].text.setText(sss[n]);
+    }
+    btn_show.favor.setTexture('btn06');     // 將正確/錯誤牌關起來
+
+}
+
+function shuffle(){  
+        var k = 0;
+        var arr = [];
+        for (var i=0; i < myPicNum[answer]; i++){
+                arr[i] = i;
+            
+        }    
+        var newArr=[];
+        randomSort(arr,newArr);
+        return newArr
+    }
+
+
+function randomSort(arr, newArr) {
+    // 如果原陣列arr的length值等於1時，原陣列只有一個值，其鍵值為0
+    // 同時將這個值push到新陣列newArr中
+    if(arr.length == 1) {
+        newArr.push(arr[0]);
+        return newArr; // 相當於遞迴退出
+    }
+    // 在原陣列length基礎上取出一個隨機數
+    var random = Math.ceil(Math.random() * arr.length) - 1;
+    // 將原陣列中的隨機一個值push到新陣列newArr中
+    newArr.push(arr[random]);
+    // 對應刪除原陣列arr的對應陣列項
+    arr.splice(random,1);
+    return randomSort(arr, newArr);
+}
+
+
+</script>
+
+</body>
+</html>

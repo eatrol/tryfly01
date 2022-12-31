@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+
+    <style>
+            /* The Modal (background) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        padding-top: 100px; /* Location of the box */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0,0,0); /* Fallback color */
+        background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+        text-align: center;
+    }
+
+    .drawmodal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        padding-top: 0px; /* Location of the box */
+        left: 0;
+        top: 0;
+        margin:8px;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0,0,0); /* Fallback color */
+        background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+        text-align: center;
+    }
+
+
+    </style>
+</head>
+<body>
+    
+    <div id="myModal" class="modal">
+        <!-- Modal content -->
+        
+        <div class="modal-content">
+          <img id="modalimg" >
+        </div>
+        <span class="close">&times;<img src="/static/lucy/close.png" style="width:80px;height:auto;"></span>
+    </div>
+
+    <!--繪畫板功能-->
+    <div id="drawModal" class="drawmodal">
+        <!-- Modal content -->
+        <div  class="modal-content">
+            <canvas id="drawCanvas" width="800px" height="500px" style="border:1px solid #aaaaaa"></canvas>
+        </div><br>
+        <span class="close">&times;<img src="/static/lucy/close.png" style="width:80px;height:auto;display: none;"></span>
+        <br><canvas id="scoreCanvas" width="80px" height="80px" onclick="drawspan.onclick()" style="margin-left: 8px;"></canvas>
+        
+    </div>
+
+    <canvas id="cvs" width="800px" height="600px" style="border:1px solid #000000;margin:0px;" ></canvas>
+
+    <a id="goback" style="display: none;" href="/main/{{unit.type}}">go</a>
+
+
+    <script type="text/javascript">
+        var cvs=document.getElementById("cvs");
+        var ctx=cvs.getContext("2d");
+        var cvs2=document.getElementById("drawCanvas");
+        var ctx2=cvs2.getContext("2d");
+        var cvs3=document.getElementById("scoreCanvas");
+        var ctx3=cvs3.getContext("2d");
+
+        var touchX,touchY;
+        var started = false
+        var myVar;
+
+        // Get the modal
+        var modal = document.getElementById("myModal");
+        var drawmodal = document.getElementById("drawModal");
+        var span = document.getElementsByClassName("close")[0];
+        var drawspan = document.getElementsByClassName("close")[1];
+        var modalimg = document.getElementById("modalimg");
+
+        // 載入資料庫
+        var answer = -1;
+
+
+
+        var lucy_bg = "/static/lucy/bg4.png"
+
+        var lucy_word = "{{pk}}";
+        var lucy_word_size = window.innerWidth/8;
+        var lucy_sound = "https://s.yimg.com/bg/dict/dreye/live/m/" + "{{pk}}" + ".mp3";
+    
+        var lucy_img= "{{ unit.image}}"
+        var factor = window.innerWidth/800;
+        var lucy_score = 0
+
+        var myPic = ['star','stream','snail','swear','spring','swimming','running','driving','skating','princess'];
+        var myPicChi = ['星星','小河','指甲','發誓','春天','游泳','跑步','開車','滑冰','公主'];
+
+        var url = "https://s.yimg.com/bg/dict/dreye/live/m/" + lucy_word +".mp3"
+        var answer_sound = new newsound(url);
+
+        var timeframe = 0;
+
+        function init(){
+            cvs.height = window.innerHeight;    // 設定外觀尺寸
+            cvs.width = window.innerWidth;
+
+            // 手繪板的
+            cvs2.width = window.innerWidth; 
+            cvs2.height = window.innerHeight*0.66;
+            // 計分板
+            cvs3.width = window.innerWidth; 
+            cvs3.height = 100;
+
+            ctx.font = lucy_word_size + 'pt Helvetica Neue';   // 設定字體大小
+            ctx.textAlign = 'center'                    // 設定字體致中
+            ctx.fillStyle='#fefefe';                      // 設定字體顏色
+            modalimg.src = lucy_img;
+            
+            modalimg.style.height = window.innerHeight*0.7 + 'px';
+        }
+
+        // 宣告按鍵
+        var myobs= [];
+        myobs[0]= new newbtn(window.innerWidth/2-40*factor,window.innerHeight/2+80*factor,600*factor/7,600*factor/7,"/static/lucy/lucy-sound.png",lucy_sound);
+        myobs[1]= new newbtn(window.innerWidth/2+100*factor,window.innerHeight/2+60*factor,600*factor/6,600*factor/6,"/static/lucy/answer.png","/static/lucy/coin.mp3");
+        myobs[2]= new newbtn(window.innerWidth/2+200*factor,window.innerHeight/2+75*factor,600*factor/7,600*factor/7,"/static/lucy/button02.png","");
+        myobs[3]= new newbtn(window.innerWidth/2-200*factor,window.innerHeight/2+75*factor,600*factor/7,600*factor/7,"/static/lucy/button03.png","/static/lucy/cardopen.mp3");
+        myobs[4]= new newbtn(window.innerWidth/2-310*factor,window.innerHeight/2+75*factor,600*factor/7,600*factor/7,"/static/lucy/button04.png","");
+        myobs[0].sound.sound.playbackRate=0.7;
+            
+        var mysound = [];
+
+        
+
+        var mybg= [];
+        mybg[0]= new newbg(0,0, window.innerWidth, window.innerHeight,lucy_bg);
+        mybg[1]= new newbg(window.innerWidth/2+120*factor,0, 80, 80,"/static/lucy/colorwheel.png");
+        mybg[2]= new newbg(window.innerWidth/2-40,0, 80, 80,"/static/lucy/close.png");
+        mybg[3]= new newbg(window.innerWidth/2+190*factor,70, 60, 60,"");
+
+        //mybg[1] = new newbg(window.innerWidth*0.1,window.innerHeight*0.1,window.innerWidth*0.8,window.innerHeight*0.5,"menu.png")
+        console.log()
+
+        window.onload= function() {
+            init();
+            toNext();
+            setInterval(update,1);
+        }
+
+        //****** 主程式 ********************************
+        function update(){
+            
+
+            if(timeframe %1000 == 0){toNext();}
+
+            //mybg[0].drawend(); 
+            ctx.font = lucy_word_size*0.3 + 'pt Helvetica Neue';   // 設定字體大小
+            ctx.fillText(timeframe, cvs.width/2, cvs.height-50);
+            timeframe += 1;
+        }
+        //**************************************
+
+        function toNext(){
+            answer += 1;
+
+            mybg[0].draw();         // 底版
+
+            lucy_word = myPic[answer];
+            ctx.font = lucy_word_size + 'pt Helvetica Neue';   // 設定字體大小
+            ctx.fillText(lucy_word, cvs.width/2, cvs.height/3);
+
+            lucy_chinese = myPicChi[answer];
+            ctx.font = lucy_word_size*0.5 + 'pt Helvetica Neue';   // 設定字體大小
+            ctx.fillText(lucy_chinese, cvs.width/2, cvs.height/2);
+
+            url = "https://s.yimg.com/bg/dict/dreye/live/m/" + lucy_word +".mp3"
+            answer_sound.sound.src = url;
+            myobs[0].sound.sound.src = url;
+
+
+            var lucy_letter = lucy_word.split('');
+            for (var i=0; i < lucy_letter.length;i++){
+                var soundurl = "https://s.yimg.com/bg/dict/dreye/live/m/" + lucy_letter[i] +".mp3"
+                mysound[i] = new newsound(soundurl);
+                console.log(soundurl);
+            }
+
+            myobs[0].draw();
+            myobs[2].draw();
+
+  
+        }
+
+    
+        function newsound(src) {
+            this.sound = document.createElement("audio");
+            this.sound.src = src;
+            this.sound.setAttribute("preload", "auto");
+            this.sound.setAttribute("controls", "none");
+            //this.sound.playbackRate=0.5;
+            this.sound.style.display = "none";
+            document.body.appendChild(this.sound);
+            this.play = function(){
+                this.sound.play();
+            }
+                this.stop = function(){
+                    this.sound.pause();
+                    this.sound.currentTime = 0;
+                }
+        }     
+
+    cvs.onmousedown = function (e) {
+        touchX = e.offsetX;
+        touchY = e.offsetY;
+        myobs[0].isTouch()
+        if (myobs[1].isTouch()){ modal.style.display = "block"; }
+        if (myobs[2].isTouch()){
+                
+            if (mysound.length > 0){setTimeout(function(){ mysound[0].play() }, 1000)} 
+            if (mysound.length > 1){setTimeout(function(){ mysound[1].play() }, 2000)} 
+            if (mysound.length > 2){setTimeout(function(){ mysound[2].play() }, 3000)}      
+            if (mysound.length > 3){setTimeout(function(){ mysound[3].play() }, 4000)} 
+            if (mysound.length > 4){setTimeout(function(){ mysound[4].play() }, 5000)} 
+            if (mysound.length > 5){setTimeout(function(){ mysound[5].play() }, 6000)} 
+            if (mysound.length > 6){setTimeout(function(){ mysound[6].play() }, 7000)} 
+            if (mysound.length > 7){setTimeout(function(){ mysound[7].play() }, 8000)} 
+            if (mysound.length > 8){setTimeout(function(){ mysound[8].play() }, 9000)} 
+            if (mysound.length > 9){setTimeout(function(){ mysound[9].play() }, 10000)} 
+            if (mysound.length > 10){setTimeout(function(){ mysound[10].play() }, 11000)} 
+
+        }
+
+        if (myobs[3].isTouch()){ 
+            ctx2.clearRect(0,0,8000,8000);
+            drawmodal.style.display = "block"; 
+            myVar = setInterval(function(){ getpix() }, 1000);  // 開啟左右掃描
+        }
+        if (myobs[4].isTouch()){ 
+            var goback = document.getElementById('goback')
+            goback.click();
+            
+        }
+    }
+
+
+    span.onclick = function() {
+        modal.style.display = "none";
+       // drawmodal.style.display="none";
+    }
+
+    drawspan.onclick = function() {
+        drawmodal.style.display="none";
+        clearInterval(myVar);   // 停止左右掃描
+    }
+
+
+    // canvas 滑鼠按下 ：開啟 beginPath 
+    cvs2.onmousedown = function (e) {
+        ctx2.strokeStyle = '#00f';
+        ctx2.lineWidth = 15*factor;
+        ctx2.lineCap = 'round';
+        ctx2.globalAlpha = 1; 
+        ctx2.beginPath();
+        started = true;
+        //e.preventDefault();
+    }
+
+    // canvas 滑鼠移動 : 開始畫線
+    cvs2.onmousemove = function (e) {
+        if (started) {
+            ctx2.lineTo(e.offsetX, e.offsetY);
+            ctx2.stroke();
+        }
+    }
+    // canvas 滑鼠移動
+    cvs2.onmouseup = function (e) {
+        if (started) {
+            started = false;
+        }
+    }
+    // --------------------------------
+    // canvas 觸碰 : 開始畫線 --------------------------
+    cvs2.ontouchstart = function (e) {
+        ctx2.strokeStyle = '#0ff';
+        ctx2.lineWidth = 15*factor;
+        ctx2.lineCap = 'round';
+        ctx2.globalAlpha = 1; 
+        ctx2.beginPath();
+        started = true;
+        e.preventDefault();     // 觸碰要增加這行
+    }
+
+    // canvas 觸碰移動 : 開始畫線
+    cvs2.ontouchmove = function (e) {
+        this.touch=e.targetTouches[0];
+      
+        if (started) {
+            ctx2.lineTo(this.touch.pageX-8, this.touch.pageY-8);  //要做修正, CAVNAS跟觸碰區有距離差
+            ctx2.stroke();
+        }
+        e.preventDefault();     // 觸碰要增加這行
+    }
+
+    // canvas 觸碰結束
+    cvs2.ontouchend = function (e) {
+        if (started) {
+            started = false;
+        }
+        e.preventDefault();
+    }
+    
+ 
+    // 物件1 : 可觸碰的按鍵
+    function newbtn(btnx,btny,btnw,btnh,btnpic,btnsound){
+        this.x = btnx;
+        this.y = btny;
+        this.width = btnw;
+        this.height = btnh; 
+        this.image = new Image()
+        this.image.src = btnpic;
+        this.sound = new newsound(btnsound);
+    
+        this.draw = function(){
+            ctx.drawImage(this.image,this.x, this.y , this.width ,this.height);
+        }
+
+        this.drawend = function(){
+            ctx.drawImage(this.image,0, cvs.height-150 , this.width ,this.height);
+        }
+
+        this.isTouch = function(obj){
+            var myleft = this.x;
+            var myright = this.x + this.width;
+            var mytop = this.y;
+            var mybot = this.y + this.height;
+            if (myright> touchX && myleft < touchX && mytop < touchY && mybot > touchY ){
+                this.sound.play();
+                return true;
+            }else{
+                return false;
+            }
+        } 
+    }
+
+    // 物件2 : 圖片
+    function newbg(btnx,btny,btnw,btnh,btnpic){
+        this.x = btnx;
+        this.y = btny;
+        this.width = btnw;
+        this.height = btnh; 
+        this.image = new Image()
+        this.image.src = btnpic;
+
+        this.draw = function(){
+            ctx.drawImage(this.image,this.x, this.y , this.width ,this.height);
+        }
+
+        this.scoredraw = function(){
+            ctx3.drawImage(this.image,this.x, this.y , this.width ,this.height);
+        }
+
+        this.textdraw = function(){
+            ctx3.fillStyle="#000000";            // 設定畫布 填滿的顏色
+            ctx3.globalAlpha = 1;          // 設定畫布 透明度
+            ctx3.fillRect(this.x,0,this.width*2,this.height*factor);    // 設定畫布 填滿區間 (50,50) 長100/寬100
+            ctx3.fillStyle="#000000"; 
+            ctx3.globalAlpha = 0.2;          // 設定畫布 透明度
+            ctx3.fillRect(this.x,0,this.width*2,this.height*factor);    // 設定畫布 填滿區間 (50,50) 長100/寬100
+            
+            ctx3.font = this.height + 'pt Helvetica Neue';   // 設定字體大小
+            ctx3.globalAlpha = 1;          // 設定畫布 透明度
+            ctx3.fillStyle='#00ff00';                      // 設定字體顏色
+            ctx3.fillText(lucy_score, this.x, this.y);
+
+        }
+
+        
+    }
+
+
+    function getpix(){
+       
+        var pixels1 = ctx.getImageData(0,0,cvs.width,cvs.height)
+        var data1 = pixels1.data;    //取得像素資料,一個像素佔據4個bytes R/G/B/a (範圍0~255)
+        var Pixels1_count = 0;          // 取得原始字體pixel
+        var draw_count = 0              // 計算吻合pixel
+            for(var i=0; i<data1.length; i+=4){
+                if(data1[i] == 254 && data1[i+1] == 254 && data1[i+2] == 254){
+                    //data1[i] = 0
+                    //data1[i+1] = 0
+                    //data1[i+2] = 0
+                    Pixels1_count= Pixels1_count+1;
+                }
+            };
+        //ctx.putImageData(pixels1,0,0);
+  
+
+        var pixels2 = ctx2.getImageData(0,0,cvs2.width,cvs2.height)
+        var data2 = pixels2.data;    //取得像素資料,一個像素佔據4個bytes R/G/B/a (範圍0~255)
+
+        for(var i=0; i<data2.length; i+=4){
+                var diff1 = data1[i]-data2[i];
+                var diff2 = data1[i+1]-data2[i+1];
+                var diff3 = data1[i+2]-data2[i+2];
+                if(diff1 == 254 && diff2 == 254 && diff3 == 254){
+                    draw_count= draw_count +1;
+                }
+            };
+        
+      
+        lucy_score = ((Pixels1_count - draw_count)/Pixels1_count * 100).toFixed(0)
+        mybg[3].textdraw();
+        
+        
+    }
+
+
+    </script>
+
+    
+</body>
+</html>

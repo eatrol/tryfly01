@@ -1,0 +1,45 @@
+<!--
+教學名稱: AJAX 教學 - JS 與伺服器的互動
+教學網址：https://www.youtube.com/watch?v=OkphAk_cWPM
+
+Tag: #javascript #XMLHttpRequest
+
+Goal : AJAX 
+    1. XMLHttpReqest()的物件使用方式4個步驟 
+    xxx=new XMLHttpRequest();     宣告物件
+    xxx.open("get","網址")         設定取得特定網址的資料
+    xxx.onload=function{...}      取得資料後要做的事
+    xxx.send()                    送出連線
+
+    2. <body onload="...">       可載往一開始預先載入資料 
+-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="urt-8"/>
+        <title>AJAX標籤選單 </title>
+        <script type="text/javascript">   
+        function getdata(pk){
+            var req= new XMLHttpRequest();  // XMLHttpReqest物件專門和伺服器做連線
+            req.open("get","http://127.0.0.1:8887/"+ pk ); 
+            req.onload=function(){
+                var content = document.getElementById("content");
+                content.innerHTML= this.responseText;
+            };
+            req.send(); //送出連線
+        };
+        </script>
+    </head>
+
+    <body onload="getdata('index15-1.html')">
+        <div class=""> 
+            <span onclick="getdata('index15-1.html');">熱門</span>
+            <span onclick="getdata('index15-2.html');">最新</span>
+            <hr>
+            <div id="content"></div>
+        </div>
+    </body>
+
+</html>
+

@@ -1,0 +1,292 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>超級單字王</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id='showxy'></div>
+<a id="toNext" href=""></a>
+
+<script type="text/javascript">
+
+var factor = window.innerWidth/2048; 
+var offsetY = (window.innerHeight - 1536*factor) /2
+
+//factor =0.8;
+
+
+
+var config = {
+    type: Phaser.CANVAS,
+    width: 2048*factor,
+    height: 1536*factor+ 2*offsetY,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+
+
+//var stars;
+
+var cursors;
+var frametime,endtime, gameOver, onfishing,fishrate,fishtop,fishbot;
+var score, scoreYes,scoreText ;
+var stage, stageText;
+
+
+
+
+
+// 題庫相關
+var myPic = [];
+var myPicNum = [];
+
+var myMusic = [];
+
+var textsize;
+
+
+var menu4,menu5,menu6; //選單
+//var btn_sound,btn_show,btn_bar,btn_reset;
+var btn_easy,btn_hard,btn_go,btn_learn;
+var my;
+
+
+
+
+function initial(){
+
+  
+    //myPic = ['boat','flower','sky','sand','grass','pond','fire','paint','tape','clown'];
+    myPic = ['glue','sling','blink','beet','dinosaur','first','second','third','fourth','fifth'];
+    my = 0;     // 0:沒選 , 1:easy , 2:hard
+
+    frametime=0;            // 遊戲時間
+    endtime = 0;            // 遊戲結束後的時間
+    gameOver = false;
+
+    textsize = Math.floor(50*factor) + 'px';    // 設定文字的尺寸
+    score = 0;
+    stage = 3;
+
+
+}
+
+
+var game = new Phaser.Game(config);
+
+function preload (){
+    initial(); // 載入初始設定參數
+
+
+
+    this.load.image('bg01',  '/static/lucygame/3bg1.png');
+    this.load.image('btn01', '/static/lucygame/3btn1.png');      // 按鍵
+    this.load.image('btn02', '/static/lucygame/3btn2.png');   // 聲音鈕
+    this.load.image('btn03', '/static/lucygame/3btn3.png');      // 填空木牌
+    this.load.image('btn04', '/static/lucygame/3btn4.png');      // reset button
+    this.load.image('btn05', '/static/lucygame/3btn5.png');
+    this.load.image('btn06', '/static/lucygame/3btn6.png');
+
+    this.load.image('menuwin', '/static/lucygame/menuwin.png');
+    this.load.image('menu4', '/static/lucygame/menu4.png');
+    this.load.image('menu5', '/static/lucygame/menu5.png');
+    this.load.image('menu6', '/static/lucygame/menu6.png');
+    this.load.image('btn06', '/static/lucygame/button06.png');
+
+
+    this.load.image('goright', '/static/lucygame/goright.png');
+    this.load.image('gowrong', '/static/lucygame/gowrong.png');
+    
+    // 載入所有問題卡資訊
+    for (var i=0;i<myPic.length;i++){
+        
+        this.load.image(myPic[i], '/static/lucygame/'+myPic[i]+'.png');  
+        this.load.audio('music'+myPic[i],'/static/lucygame/'+myPic[i]+'.mp3');
+    }
+    
+    this.load.audio('sound_coin','/static/lucygame/coin.mp3');
+    this.load.audio('sound_wrong','/static/lucygame/sound_wrong.mp3');
+    this.load.audio('animaltheme','/static/lucygame/animaltheme.mp3');
+
+}
+
+function create (){
+
+    initial(); // 載入初始設定參數
+    
+
+    // 載入音樂
+    music = this.sound.add('sound_coin',{volume:0.2}) ;
+
+
+    music2 = this.sound.add('animaltheme',{loop:true, volume:2});
+    music2.loop = true;
+    music2.stop();
+    music2.play();
+
+
+    
+    music3 = this.sound.add('sound_coin',{volume:0.2});
+    music4 = this.sound.add('sound_wrong',{volume:0.5});
+
+    //  加入背景圖面
+    this.add.image(game.config.width/2, game.config.height/2, 'bg01').setScale(factor);
+    
+ 
+
+    var myTextSize = 100*factor + 'px';
+ 
+    // 設定按鍵圖面 group..
+    favor1 = this.physics.add.group();
+
+    btn_easy = new newbutton(favor1.create(700*factor, 750*factor+offsetY, 'btn01'), '');           // 聲音鈕
+    btn_hard = new newbutton(favor1.create(1300*factor, 750*factor+offsetY, 'btn02'), '');           // 聲音鈕
+    btn_go = new newbutton(favor1.create(1020*factor, 1150*factor+offsetY, 'btn05'), '');           // 聲音鈕
+    btn_learn= new newbutton(favor1.create(1680*factor, 1150*factor+offsetY, 'btn06'), '');           // 聲音鈕
+    // 調整按鍵圖面大小
+    favor1.children.iterate(function (child) {
+         child.setScale(factor);
+    });
+    
+
+ 
+    //============================
+    btn_easy.favor.setInteractive().on('pointerdown', () => {
+        my = 1;
+        btn_hard.setPic('btn02');
+        btn_easy.setPic('btn03');
+        music4.play();
+    })
+
+    btn_hard.favor.setInteractive().on('pointerdown', () => {
+        my = 2;
+        btn_easy.setPic('btn01');
+        btn_hard.setPic('btn04');
+        music4.play();
+
+    })
+
+    btn_go.favor.setInteractive().on('pointerdown', () => {
+        music.play();
+        var toNext = document.getElementById("toNext");
+        if(my == 1){
+            toNext.href = "/lucygame/";
+            toNext.click();
+        } else if (my ==2){
+            toNext.href = "/lucygame2/";
+            toNext.click();
+        }
+    })
+
+    btn_learn.favor.setInteractive().on('pointerdown', () => {
+        var toNext = document.getElementById("toNext");
+        toNext.href = "/";
+        toNext.click();
+        //music4.play();
+    })
+
+    //================================
+
+
+
+
+
+    // // 秀出分數跟時間
+    scoreText = this.add.text(1800*factor, 120*factor+offsetY, score + '/' + myPic.length, { fontSize: textsize, fill: '#fff' }).setOrigin(0.5);
+    stageText = this.add.text(game.config.width/2, 300*factor+offsetY, 'Stage ' + stage, { fontFamily: '"Times, serif',fontSize: 80*factor, fill: '#fff' }).setOrigin(0.5);
+    // wormText = this.add.text(wormX, wormY, worm, { fontSize: textsize, fill: '#000' });
+    // 時間 =======================
+    timetext = this.add.text(game.config.width/2,100*factor+offsetY,'time:'+frametime,{ fontSize: textsize, fill: '#000' ,boundsAlignH: 'center', boundsAlignV: 'middle' }).setOrigin(0.5);;
+    cursors = this.input.keyboard.createCursorKeys();
+   
+
+    // 結束畫面 ===============
+    menu4 = this.physics.add.sprite(game.config.width/2,game.config.height/2, 'menu4').setScale(factor);
+    menu5 = this.physics.add.sprite(game.config.width/2,0, 'menu5').setScale(factor*0.9);
+    menu6 = this.physics.add.sprite(game.config.width/2,1150*factor+offsetY-game.config.height/2, 'menu6').setScale(factor*0.6); 
+    menu6.setInteractive().on('pointerdown', () => {
+        music2.stop();
+        this.scene.restart();
+    })
+    menu4.disableBody(true, true);  // 隱藏背景
+    menu5.disableBody(true, true);  // 隱藏彈出視窗
+    menu6.disableBody(true, true);  // 隱藏按鍵
+   
+
+}
+
+
+//********************************************
+// 更新：主程式
+//************************************
+function update (){
+    if (cursors.space.isDown){
+        initial();
+        music2.stop();
+        this.scene.restart();
+    }
+
+
+
+    // 遊戲結束
+    if (gameOver){
+        
+        timetext.setText('Game Over');
+        menu4.enableBody(true, game.config.width/2,game.config.height/2, true, true);
+        menu5.enableBody(true, game.config.width/2,0, true, true);
+        menu6.enableBody(true, game.config.width/2,1150*factor+offsetY-game.config.height/2, true, true);
+        if(20*endtime < game.config.height/2){
+            menu5.y=20*endtime;
+            menu6.y=1150*factor+offsetY-game.config.height/2+20*endtime;
+        } else {
+            menu5.y=game.config.height/2;
+            menu6.y=1150*factor+offsetY;
+
+        }
+        endtime ++;
+        return;
+    }
+
+    timetext.setText('time:'+frametime);
+    frametime += 1;
+
+}
+
+function newbutton(favor,text){
+     this.favor = favor;
+     this.text = text;
+     this.no = 999;
+     this.setPic = function(pk){
+        this.favor.setTexture(pk);
+     }
+
+     this.setText = function(pk){
+        this.no = pk;
+        this.text.setText(myPic[pk]);
+     }
+}
+
+
+</script>
+
+</body>
+</html>

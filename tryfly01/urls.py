@@ -21,6 +21,7 @@ from fly import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("", views.homePageView, name="home"),
+    path('lucygame/',views.lucygame),
     
 ]
 

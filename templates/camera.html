@@ -1,0 +1,51 @@
+<!--
+教學名稱: 動態影像辨識 1 - 如何啟動webcam
+教學網址：https://www.youtube.com/watch?v=tsHVjryZJCA&t=2055s
+Goal : 利用javascript 啟動相機,並將畫面同步在canvas上
+
+    1. 需向在HTML建立一個 <video id="xxxx">物件
+    2. 啟動webcam, 將影像放置在<video>裡
+        window.navigator.mediaDevices.getUserMedia({audio:false, video:true}).then((stream)=>{
+            xxxx.srcObject= stream;
+            xxxx.play();
+        });
+    3. canvas 同步畫出影像
+        ctx.drawImage(xxxx,0,0);
+-->
+
+<html>
+<head>
+    <title>webcam</title>
+</head>
+
+<body>
+<video id="video1"></video>
+<canvas id="cvs"></canvas>
+
+<script>
+    const vd = document.getElementById("video1");
+    const ctx = document.getElementById("cvs").getContext("2d");
+    let model = null; 
+    init();
+    setInterval(refresh,100); // 讓Canvas 畫出webcam的影像, 每0.1秒
+
+    // 啟動webcam
+    function init(){
+        window.navigator.mediaDevices.getUserMedia({audio:false, video:true}).then((stream)=>{
+            vd.srcObject= stream;
+            vd.play();
+
+        });
+    }
+
+    // Canvas 畫出影像
+    function refresh(){
+        ctx.canvas.width = vd.videoWidth;
+        ctx.canvas.height = vd.videoHeight;
+        ctx.drawImage(vd,0,0);
+    }
+
+</script>
+
+</body>
+</html>

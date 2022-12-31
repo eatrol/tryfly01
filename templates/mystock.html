@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    
+    <title>Stock analysis</title>
+
+    <style type="text/css">
+        #td1{
+          border-top: none
+        }
+        
+        .trr{
+          display:none
+        }
+
+
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+
+        <h1>我的股市</h1>
+        <br />
+            <div class="form-row">
+                <div class="form-group col-8">
+                    <input class="form-control" name="city_name" placeholder="請輸入城市名稱">
+                </div>
+                <div class="form-group col-4">
+                    <button class="btn btn-danger" onclick="addNew();" >新增</button>
+                    <input class="btn btn-dark" type="submit" value="查詢">
+                    
+                </div>
+            </div>
+    
+
+       
+
+            <table id="fortable" class="table table-hover">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>No</th>
+                    <th>股市代碼</th>
+                    <th>公司名稱</th>
+                    <th>股價</th>
+                    <th>今日漲碟</th>
+                    <th>淨值比</th>
+                    <th>本益比</th>
+                    <th>ROE</th>
+                    <th>EPS</th>
+                    <th>毛利率(%)</th>
+                </tr>
+            </thead>
+        </table>
+
+        <div id='chart'>
+        
+        </div>
+
+
+
+    </div>
+
+
+
+    <script type="text/javascript">
+    
+    var count=0
+
+    window.onload=function(){
+       
+    }
+
+
+
+    function addNew(){
+        count += 1
+        var fortable = document.getElementById("fortable");
+        fortable.innerHTML += "<tr onclick='go2("+count+")'><td><button id='but"+count+"' onclick='goCheck("+ count +
+            ");'>更新</button></td><td>"+ count + 
+            "</td><td><input value='2317' id='stock"+ count +
+            "'></td><td id='company" + count +
+            "'>鴻海</td><td id='price" + count +
+            "'>101</td><td id='priceup" + count +
+            "' >+3.1</td><td id='PBR" + count +
+            "'>1.12</td><td id='PER"+count+
+            "'>9</td><td id='ROE" + count +
+            "'>ROE</td><td id='EPS" + count +
+            "'>eps</td><td id='GPM"+ count +
+            "'>-</td></tr>" +
+            "<tr class='trr' id='tr"+count+
+            "'><td id='td1'></td><td id='td1'> </td><td id='td1'> </td><td id='td1' >xxx</td><td style='border-top:none' id='price_H"+count+
+            "'>3天平均</td><td style='border-top:none;text-align:left' id='priceup_H"+count+
+            "'></td><td style='border-top:none' id='PBR_H"+count+
+            "' ></td><td style='border-top:none' id='PER_H"+count+
+            "'></td><td style='border-top:none' id='ROE_H"+count+
+            "' ></td><td style='border-top:none' id='EPS_H"+count+
+            "'></td><td style='border-top:none' id='GPM_H"+count+
+            "'></td></tr>"
+    }
+
+    function goCheck(pk){
+    
+        goStock(pk);
+        
+        goPER(pk);
+        //goChart(2317);
+        
+        
+    }
+
+    function goStock(pk){
+        var stock = document.getElementById('stock'+pk).value;    
+        var xhr = new XMLHttpRequest();
+        var onloadHandle = function(){
+            var data = JSON.parse(xhr.responseText); 
+            console.log(data)
+
+            var basic = data[0]
+            // 把資料會進去
+            var list =["company","price","priceup","PBR","PER"]
+            var mydata =[basic.company, basic.price, basic.priceup, basic.PBR, basic.PER]
+            for (var i=0; i< list.length; i++){
+                var item = document.getElementById(list[i]+pk); 
+                item.innerHTML = mydata[i]
+            }
+            var item = document.getElementById("priceup"+pk)
+            item.style.color = basic.sColor
+
+            // (2) 把漲跌資料倒進去
+            var item = document.getElementById("priceup_H"+pk)
+            item.innerHTML=""
+            var pricechange = data[1].pricechange
+            for(var i=0;i<pricechange.length; i++){
+                item.innerHTML += "<font color='"+ pricechange[i].priceup_ratio_color + 
+                    "'>"+ pricechange[i].date + ":" + pricechange[i].priceup_ratio + "</font><br>"
+            }
+
+            // (3) 把ROE資料倒進去
+            var data2 = data[2].ROE
+            var titles =["YEAR","ROE","EPS","GPM"]
+            for (var xxx=1; xxx< titles.length ; xxx++ ){
+                document.getElementById(titles[xxx]+ pk).innerHTML = "";
+                document.getElementById(titles[xxx]+ "_H" + pk).innerHTML = "";
+            }
+           
+
+            for (var i=0; i<data2.length;i++){
+                mydata = [data2[i].YEAR, data2[i].ROE, data2[i].EPS, data2[i].GPM ];
+                for (var j=1; j< mydata.length; j++){
+                    if (i==0) {
+                        var item = document.getElementById(titles[j]+ pk);
+                        item.innerHTML = mydata[j]  ;
+                    }else{
+                        var item = document.getElementById(titles[j]+ "_H" + pk);
+                        item.innerHTML +=  mydata[0] + " : " + mydata[j] + "<br>" ;
+                    }
+                }
+            }
+
+        };
+  
+        xhr.open('GET','https://tryjsonexcel.herokuapp.com/stock/'+stock,true);
+        xhr.send(); xhr.onload = onloadHandle;
+
+    }
+
+
+    function goPER(pk){
+        var stock = document.getElementById('stock'+pk).value;    
+        var xhr = new XMLHttpRequest();
+        var onloadHandle = function(){
+            var data = JSON.parse(xhr.responseText);  
+            var item = document.getElementById('PER_H'+pk)
+            item.innerHTML = ""
+            for(var i=0;i<=3 ; i++){
+                item.innerHTML += data[i].PER + "<br>"
+            }
+
+        }
+        xhr.open('GET','https://tryjsonexcel.herokuapp.com/PERH/'+stock,true);
+        xhr.send(); xhr.onload = onloadHandle;
+    }
+
+
+    function go2(pk){
+      var spantext = document.getElementById("tr"+pk);   
+      spantext.classList.toggle("trr");
+    };
+
+
+    function goChart(stock){
+        //var stock = document.getElementById('stock'+pk).value;
+        var req= new XMLHttpRequest();  // XMLHttpReqest物件專門和伺服器做連線
+        req.open('GET','https://tryjsonexcel.herokuapp.com/linechart/'+stock,true);
+        req.onload=function(){
+            var content = document.getElementById("chart");
+            console.log(this.responseText)
+            content.innerHTML= this.responseText;
+        };
+        req.send(); //送出連線
+    };
+
+    </script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+    
+
+</body>
+</html>

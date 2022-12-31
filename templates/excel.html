@@ -1,0 +1,187 @@
+<!--
+教學名稱: Javascript讀取EXCEL檔並把資料秀在網頁上範例
+教學網址：https://www.itread01.com/content/1546618262.html
+
+Tag: #javascript #json 
+
+Goal : JSON
+    1. 讀取EXCEL檔轉成JSON格式
+    2. 點擊按鍵後將JSON檔案秀在網頁上
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Excel批量處理</title>
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/xlsx/0.11.5/xlsx.core.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+
+<style type="text/css">
+#td1{
+  border-top: none
+
+}
+
+.trr{
+  display:none
+}
+
+.des_box{
+    width :700px;
+
+}
+
+.butt1{
+    height: 55px;
+    margin: 0px 10px;
+    position: absolute;
+
+};
+
+</style>
+
+
+
+</head>
+
+<body>
+<br>
+<div class="container">
+
+<div class="form-row">
+    <div class="form-group col-md-8">
+        <input class="form-control" type="file" id="excel-file" style="height:auto;">
+    </div>
+    <div class="form-group col-md-2">
+        <button  class="btn btn-danger" onclick="gocheck();" style="vertical-align: text-top;">click me</button>      
+    </div>
+
+    <div class="form-group col-md-2">
+        <form action="/readexcel/" method="post">
+            {% csrf_token %}
+            <button  class="btn btn-dark" onclick="pyupload();" style="vertical-align: text-top;" type="submit">上傳</button>
+            <input name="pyjson" id= "pyjson" value="xxx" type="hidden">
+        </form>
+    </div>
+</div>
+
+
+<table id="fortable" class="table table-hover">
+    <thead>
+        <tr>
+        <th style="width:50px;">Item</th>
+        <th>Description</th>
+        <th>Check</th>
+        <th>Phase</th>
+        </tr>
+    </thead>
+</table>
+</div>
+
+<script>
+    var json;
+
+    function pyupload(){
+        var pyjson1 = document.getElementById("pyjson")
+        pyjson1.value= JSON.stringify(json);
+        alert(pyjson1.value);
+    };
+
+    function gocheck(){
+        var fortable = document.getElementById("fortable");
+            for (var i = 0; i< json.length; i++) {
+                fortable.innerHTML += 
+                    //'<tr onclick="go2('+i +');">' +
+                    '<tr>' +
+                    '<td>' + json[i].Item + '</td>' +
+                    '<td id="des' + i + '"><a onDblclick="update('+i+')" onclick="go2('+i +');">' + json[i].Description + '</a></td>' +
+                    '<td>' + json[i].Check + '</td>' +
+                    '<td>' + json[i].Phase + '</td>' +
+                    '</tr><tr class= "trr" id="tr'+i+'"><td id="td1"></td><td id="td1">' +
+                    '<button onclick="update('+i+');">修改</button>&nbsp' +
+                    '<button onclick="go3('+i+');">取消</button>&nbsp' +
+                    '<button onclick="dele('+i+');">刪除</button></td></tr>';
+            };
+    };
+
+
+    function go3(pk){
+
+      var spantext = document.getElementById("tr"+pk);   
+      spantext.classList.toggle("trr");
+    };
+
+    function go2(pk){
+      //先REFRESH解決跳出好幾個 spantext
+      var fortable = document.getElementById("fortable");
+      fortable.innerHTML = "<thead><tr><th style='width:50px;''>Item</th><th>Description</th><th>Check</th><th>Phase</th></tr></thead>";
+      gocheck();
+
+      var spantext = document.getElementById("tr"+pk);   
+      spantext.classList.toggle("trr");
+    };
+
+    function dele(pk){   
+        //delete json[pk];
+        json.splice(pk,1);
+        var fortable = document.getElementById("fortable");
+        fortable.innerHTML = "<thead><tr><th style='width:50px;''>Item</th><th>Description</th><th>Check</th><th>Phase</th></tr></thead>";
+        gocheck(); 
+    };
+
+    function update(pk){
+        var des = document.getElementById("des"+pk);
+        des.innerHTML="<textarea id='textarea"+pk+"' type='textarea' rows='2' class='des_box'> " + json[pk].Description + "</textarea><button class='butt1' onclick='done("+pk+");'> 完成</button>";
+        var spantext = document.getElementById("tr"+pk);
+        spantext.classList.toggle("trr");
+    };
+
+    function done(pk){
+        var textarea = document.getElementById("textarea"+pk);
+        json[pk].Description = textarea.value;
+        var fortable = document.getElementById("fortable");
+        fortable.innerHTML = "<thead><tr><th style='width:50px;''>Item</th><th>Description</th><th>Check</th><th>Phase</th></tr></thead>";
+        gocheck();    
+    };
+
+
+
+    //給input標籤繫結change事件，一上傳選中的.xls檔案就會觸發該函式
+    $('#excel-file').change(function(e) {
+        var files = e.target.files;
+        var fileReader = new FileReader();
+        fileReader.onload = function(ev) {
+            try {
+                var data = ev.target.result
+                var workbook = XLSX.read(data, {
+                    type: 'binary'
+                }) // 以二進位制流方式讀取得到整份excel表格物件
+                var persons = []; // 儲存獲取到的資料
+            } catch (e) {
+                console.log('檔案型別不正確');
+                return;
+            }
+            // 表格的表格範圍，可用於判斷表頭是否數量是否正確
+            var fromTo = '';
+            // 遍歷每張表讀取
+            for (var sheet in workbook.Sheets) {
+                if (workbook.Sheets.hasOwnProperty(sheet)) {
+                    fromTo = workbook.Sheets[sheet]['!ref'];
+                    console.log(fromTo);
+                    persons = persons.concat(XLSX.utils.sheet_to_json(workbook.Sheets[sheet]));
+                    // break; // 如果只取第一張表，就取消註釋這行
+                }
+            }
+            //在控制檯打印出來表格中的資料
+            console.log(persons);
+            json=persons;
+        };
+        // 以二進位制方式開啟檔案
+        fileReader.readAsBinaryString(files[0]);
+    });
+</script>
+</body>
+</html>

@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'qqe^5m+0b7sm7bl3zeaq#s-4daecp3a9bqbfl_@ktzp#saz$ki'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -56,7 +56,7 @@ ROOT_URLCONF = 'tryfly01.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -122,11 +122,11 @@ USE_TZ = True
 
 
 STATIC_URL = '/static/'
-# STATICFILES_DIRS = [  #加入 static 路徑
-# 	os.path.join(BASE_DIR, 'static'),
-# ]
+STATICFILES_DIRS = [  #加入 static 路徑
+	os.path.join(BASE_DIR, 'static'),
+]
 
 
-STATIC_ROOT = 'static' 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
+# STATIC_ROOT = 'static' 
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
 

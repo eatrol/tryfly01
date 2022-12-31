@@ -1,0 +1,214 @@
+<!--
+整合1: 遠短影片的影像辨識
+
+https://kknews.cc/zh-tw/code/5rnl4mk.html
+
+-->
+
+<html>
+<head>
+    <title>視訊-Server端</title>
+    <meta charset="utf-8">
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script> -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/peerjs/1.3.1/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+
+
+</head>
+<body>
+
+<!-- <video id="localVideo" style="width: 400px;height: 300px;"></video> -->
+
+<div class="p-3" style="text-align: left">
+    <!-- 自己ID<input type="text" id="myPeerid"/>（自動獲取）
+    對方ID(Server)<input type="text" id="youPeerid"/>（請手動輸入） -->
+    <h3>本地視頻</h3>
+    <div class="row mb-3">
+        <video id="localVideo" style="width: auto;height:300px;"></video>
+        <video id="remoteVideo" style="width: auto;height: 300px;"></video>
+    </div>
+
+ 
+    <div class="row mb-3" style="text-align: left;width:600px">
+        <div class="input-group mb-1">
+            <span class="input-group-text" id="inputGroup-sizing-default" style="width:100px">My ID</span>
+            <input id="myPeerid" type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" >
+        </div>
+    </div>
+
+    <div class="row mb-3" style="text-align: left;width:600px">
+        <div class="input-group mb-1">
+            <span class="input-group-text" id="inputGroup-sizing-default" style="width:100px">Client ID</span>
+            <input id="youPeerid" type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" >
+        </div>
+    </div>
+
+    <button id="callBtn" onclick="callout();">聊天</button>
+    <button  onclick="setInterval(refresh,50);">開始辨識</button>
+    <br><br>
+    <canvas id="cvs"></canvas>
+</div>
+
+
+
+
+
+
+<script type="text/javascript">
+    //訪問用戶媒體設備的兼容方法
+    function getUserMedia(constrains,success,error){
+        if(navigator.mediaDevices.getUserMedia){
+            //最新標準API
+            navigator.mediaDevices.getUserMedia(constrains).then(success).catch(error);
+        } else if (navigator.webkitGetUserMedia){
+            //webkit內核瀏覽器
+            navigator.webkitGetUserMedia(constrains).then(success).catch(error);
+        } else if (navigator.mozGetUserMedia){
+            //Firefox瀏覽器
+            navagator.mozGetUserMedia(constrains).then(success).catch(error);
+        } else if (navigator.getUserMedia){
+            //舊版API
+            navigator.getUserMedia(constrains).then(success).catch(error);
+        }
+    }
+
+    // 影像辨識辨識所需要的
+    const ctx = document.getElementById("cvs").getContext("2d");
+    const color=["green","yellow","red"]
+    let model = null; 
+
+    var localVideo = document.getElementById('localVideo');
+    var remoteVideo = document.getElementById('remoteVideo');
+    var localStream=null;
+    var peer = new Peer();
+    var device = "{{ device }}"
+    init();
+    
+
+    async function init(){
+        model = await cocoSsd.load(); // 優化速度, 在網頁一開始就載入模型
+ 
+        // 1. 啟動相機功能 : 先嘗試打開後鏡頭, 如果打不開, 改成打開前鏡頭
+        // getUserMedia({video: true, audio: false}, function(stream) {  // 開前鏡頭換這行
+        getUserMedia({video: { facingMode: { exact: "environment" } }, audio: false}, function(stream) {
+            localStream=stream;
+            localVideo.srcObject = stream;
+            localVideo.autoplay = true;
+            localVideo.play();
+            
+            
+        }, function(err) {
+            // 嘗試打開前鏡頭
+            getUserMedia({video: true, audio: false}, function(stream) {
+                localStream=stream;
+                localVideo.srcObject = stream;
+                localVideo.autoplay = true;
+                localVideo.play();
+                
+
+            }, function(err) {
+                console.log('Failed to get local stream' ,err);
+            }); 
+        });
+
+        // 2.開啟peer功能, 取得peer ID
+        peer.on('open', function(id) {      
+            document.getElementById("myPeerid").value = id;            
+            peerupdate(id);
+
+            
+        });
+
+        // 3.設定別人call in進來時候的動作, 
+        peer.on('call', function(call) {    
+            call.answer(localStream);
+            call.on('stream', function(remoteStream) {
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.autoplay = true;
+            });
+        });
+    }
+  
+
+    function callout(){
+        var remoteId=document.getElementById("youPeerid").value;
+        if(remoteId==""){ alert("請輸入對方ID");return; }   // 錯誤操作 1.如果沒輸入ID
+        //localVideo.play();
+        var call = peer.call(remoteId,localStream);     // call out到遠端裝置, 將localstream
+        call.on('stream', function(remoteStream) {
+            remoteVideo.srcObject = remoteStream;
+            remoteVideo.autoplay = true;
+        });
+
+        
+        call.on('close', function() {
+            console.log("call close");
+            _this.loading.close();
+        });
+        call.on('error', function(err) {
+            console.log(err);
+            _this.loading.close();
+        });
+    };
+
+
+
+
+    async function refresh() {   
+        ctx.canvas.width = remoteVideo.videoWidth;
+        ctx.canvas.height = remoteVideo.videoHeight;
+        
+        ctx.drawImage(remoteVideo,0,0,remoteVideo.videoWidth,remoteVideo.videoHeight);
+        ctx.font = '28px Arial';
+
+        const result = await model.detect(remoteVideo);
+            
+        for (let i = 0; i < result.length; i++) {
+            ctx.beginPath();
+            //three dots mean spread over object get all its properties
+                
+            ctx.rect(...result[i].bbox);
+            ctx.lineWidth =2;
+            ctx.strokeStyle = color[i%3];
+            ctx.fillStyle = color[i%3];
+            ctx.stroke();
+            ctx.fillText(
+            result[i].score.toFixed(3) + ' ' + result[i].class,   // toFixed(3): 四捨五入取小數點第三位
+            result[i].bbox[0],
+            result[i].bbox[1] - 5);
+        }
+
+    }
+
+
+    function peerupdate(id){  
+
+        var xhr = new XMLHttpRequest();
+        var onloadHandle = function(){
+            var data = JSON.parse(xhr.responseText);  
+            var ss = device == "computer" ? "iphone12" : "computer"
+            peerget(ss);
+            
+        }
+        xhr.open('GET','https://tryjsonexcel.herokuapp.com/peerupdate/'+ device + '/' + id,true);
+        xhr.send(); xhr.onload = onloadHandle;
+    }
+
+    function peerget(pk){  
+        var xhr = new XMLHttpRequest();
+        var onloadHandle = function(){
+            var data = JSON.parse(xhr.responseText);  
+            document.getElementById("youPeerid").value = data.peerid;
+        }
+        xhr.open('GET','https://tryjsonexcel.herokuapp.com/peerget/'+pk,true);
+        xhr.send(); xhr.onload = onloadHandle;
+    }
+
+
+
+
+</script>
+</body>
+</html>
