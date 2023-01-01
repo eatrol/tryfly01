@@ -17,11 +17,13 @@ import requests
 
 
 def lucy(request,pk):
-    #unit = dblucy.objects.get(name=pk)
     return render(request,"lucy01.html",locals())
 
-def lucy02(request,pk):
-    #unit = dblucy.objects.get(name=pk)    
+# 99乘法表練習
+def lucy99(request):
+    return render(request,"lucy99.html",locals())
+
+def lucy02(request,pk):  
     return render(request,"lucy02.html",locals())
 
 def main(request):

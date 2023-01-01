@@ -25,6 +25,7 @@ urlpatterns = [
     path('',views_lucy.main),
 
     # 從 views_lucy 載入相關程序
+    path('lucy99/',views_lucy.lucy99),
     path('lucy/<str:pk>',views_lucy.lucy),
     path('lucy02/<str:pk>',views_lucy.lucy02),
     path('main/',views_lucy.main),
