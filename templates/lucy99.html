@@ -62,8 +62,8 @@ var answer;     // 第幾題
 var question,qText;
 var textsize;
 var raw=[];
-var isAni1,isAnitime1;
-var isAni2,isAnitime2;
+var isAni1,isAnitime1,isAnitimeDelta1;
+var isAni2,isAnitime2,isAnitimeDelta2;
 var isClick;
 var menu4,menu5,menu6; //選單
 
@@ -81,8 +81,11 @@ function initial(){
     gameOver = false;
     isAni1 = false;
     isAnitime1 = 0;
+    isAnitimeDelta1 = 60;
+
     isAni2 = true;
-    isAnitime2 = 500;
+    isAnitimeDelta2 = 1000;
+    isAnitime2 = isAnitimeDelta2;
     isClick = true;
     answer = -1;
     
@@ -269,7 +272,7 @@ function update (){
         toTable(5)
     } 
 
-    var slength = (isAnitime2 - frametime)/500;
+    var slength = (isAnitime2 - frametime)/isAnitimeDelta2;
     mybutton[7].favor.setScale(1*factor*slength,factor);
 
     
@@ -301,10 +304,10 @@ function toTable(pk){
 
     }
     isAni1 = true;
-    isAnitime1 = frametime + 30;
+    isAnitime1 = frametime + isAnitimeDelta1;
 
     isAni2 = true;
-    isAnitime2 = frametime + 500;
+    isAnitime2 = frametime + isAnitimeDelta2;
     
     for(var i=1;i<=4;i++){
     //    mybutton[i].setText('');
