@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     #path("", views.homePageView, name="home"),
     path('',views_lucy.main),
+    path('toeic/',views.toeic),
 
     # 從 views_lucy 載入相關程序
     path('lucy99/',views_lucy.lucy99),
