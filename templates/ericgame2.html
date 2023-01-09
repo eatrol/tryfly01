@@ -320,7 +320,7 @@ function create (){
         // music2.stop();
         // this.scene.restart();
         var toLink = document.getElementById("toLink");
-        toLink.href = "/";
+        toLink.href = "/toeic/";
         toLink.click();
 
     })
@@ -373,7 +373,8 @@ function update (){
     
     scoreText.setText(score+ '/' + myPic.length);
     answerText.setText(answer);
-    timetext.setText('time:'+frametime);
+    //timetext.setText('time:'+frametime);
+    timetext.setText('');
     frametime += 1;
 
 }
